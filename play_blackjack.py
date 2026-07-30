@@ -33,6 +33,11 @@ def wda_tap(x, y):
     wda_request("POST", "/wda/tapScreenPointSequence", payload)
 
 
+def wda_drag(from_x, from_y, to_x, to_y, duration=0.3):
+    payload = {"fromX": from_x, "fromY": from_y, "toX": to_x, "toY": to_y, "duration": duration}
+    wda_request("POST", "/wda/drag", payload)
+
+
 def load_layout(path):
     with open(path) as f:
         return json.load(f)
@@ -59,12 +64,7 @@ def find_solver():
 def run_solver(seed, beam=200000, solver_path=None):
     if solver_path is None:
         solver_path = find_solver()
-    cmd = [
-        str(solver_path),
-        "--seed", str(seed),
-        "--beam", str(beam),
-        "--json",
-    ]
+    cmd = [str(solver_path), "--seed", str(seed), "--beam", str(beam), "--json"]
     print(f"Running solver: {' '.join(cmd)}")
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
     if result.returncode != 0:
@@ -125,6 +125,7 @@ def main():
             print("Run calibrate.py first to create it.")
             sys.exit(1)
         layout = load_layout(args.layout)
+        card_src = layout["card_source"]
         columns = layout["columns"]
         stay_pos = layout["stay_button"]
 
@@ -137,21 +138,26 @@ def main():
         print(f"  [{step+1}/{len(actions)}] {action_type} col={col} card={card} event={event}")
 
         if args.dry_run:
-            print(f"    -> {'STAY' if action_type == 'stay' else f'Column {col}'}")
+            if action_type == "place":
+                print(f"    -> DRAG card_source -> Column {col}")
+            elif action_type == "stay":
+                print(f"    -> TAP stay button")
             continue
 
-        if action_type == "stay":
-            tx, ty = stay_pos
-        elif action_type == "place":
+        if action_type == "place":
             idx = col - 1
             tx, ty = columns[idx]
+            print(f"    -> Dragging ({card_src[0]},{card_src[1]}) -> ({tx},{ty})")
+            wda_drag(card_src[0], card_src[1], tx, ty)
+        elif action_type == "stay":
+            tx, ty = stay_pos
+            print(f"    -> Tapping stay at ({tx},{ty})")
+            wda_tap(tx, ty)
         else:
             print(f"    -> Unknown action, skipping")
             time.sleep(args.delay)
             continue
 
-        print(f"    -> Tapping ({tx}, {ty})")
-        wda_tap(tx, ty)
         time.sleep(args.delay)
 
     print("Done!")
