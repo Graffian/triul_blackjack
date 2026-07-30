@@ -9,7 +9,6 @@ import urllib.error
 
 WDA_URL = "http://localhost:8100"
 SCRIPT_DIR = os.path.dirname(__file__)
-SOLVER_PATH = os.path.join(SCRIPT_DIR, "..", "bin", "triul-blackjack.dist", "triul-blackjack")
 LAYOUT_FILE = os.path.join(SCRIPT_DIR, "iphone14_layout.json")
 SEED_FILE = os.path.join(SCRIPT_DIR, "last_seed.txt")
 
@@ -45,9 +44,11 @@ def read_seed(path):
     return record["seed"]
 
 
-def run_solver(seed, beam=200000):
+def run_solver(seed, beam=200000, solver_path=None):
+    if solver_path is None:
+        solver_path = os.path.join(SCRIPT_DIR, "..", "bin", "triul-blackjack.dist", "triul-blackjack")
     cmd = [
-        str(SOLVER_PATH),
+        str(solver_path),
         "--seed", str(seed),
         "--beam", str(beam),
         "--json",
@@ -78,18 +79,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, help="Seed value (skip mitmproxy wait)")
     parser.add_argument("--beam", type=int, default=200000, help="Beam width for solver")
+    parser.add_argument("--solver", help="Path to triul-blackjack solver binary")
     parser.add_argument("--layout", default=LAYOUT_FILE, help="Layout JSON file")
     parser.add_argument("--wait", action="store_true", help="Wait for seed from mitmproxy")
     parser.add_argument("--delay", type=float, default=1.5, help="Delay between actions (seconds)")
     parser.add_argument("--dry-run", action="store_true", help="Print actions without tapping")
     args = parser.parse_args()
-
-    if not os.path.exists(args.layout):
-        print(f"Layout file not found: {args.layout}")
-        print("Run calibrate.py first to create it.")
-        sys.exit(1)
-
-    layout = load_layout(args.layout)
 
     if args.seed is not None:
         seed = args.seed
@@ -102,7 +97,7 @@ def main():
         sys.exit(1)
 
     print(f"Solving for seed {seed}...")
-    result = run_solver(seed, args.beam)
+    result = run_solver(seed, args.beam, args.solver)
 
     score = result.get("score", 0)
     actions = result.get("actions", [])
@@ -112,8 +107,14 @@ def main():
         print("No actions returned by solver.")
         return
 
-    columns = layout["columns"]
-    stay_pos = layout["stay_button"]
+    if not args.dry_run:
+        if not os.path.exists(args.layout):
+            print(f"Layout file not found: {args.layout}")
+            print("Run calibrate.py first to create it.")
+            sys.exit(1)
+        layout = load_layout(args.layout)
+        columns = layout["columns"]
+        stay_pos = layout["stay_button"]
 
     for step, act in enumerate(actions):
         action_type = act["action"]
@@ -123,20 +124,22 @@ def main():
 
         print(f"  [{step+1}/{len(actions)}] {action_type} col={col} card={card} event={event}")
 
+        if args.dry_run:
+            print(f"    -> {'STAY' if action_type == 'stay' else f'Column {col}'}")
+            continue
+
         if action_type == "stay":
             tx, ty = stay_pos
-            print(f"    -> STAY button at ({tx}, {ty})")
         elif action_type == "place":
             idx = col - 1
             tx, ty = columns[idx]
-            print(f"    -> Column {col} (index {idx}) at ({tx}, {ty})")
         else:
             print(f"    -> Unknown action, skipping")
             time.sleep(args.delay)
             continue
 
-        if not args.dry_run:
-            wda_tap(tx, ty)
+        print(f"    -> Tapping ({tx}, {ty})")
+        wda_tap(tx, ty)
         time.sleep(args.delay)
 
     print("Done!")
