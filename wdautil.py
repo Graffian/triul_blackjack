@@ -57,8 +57,8 @@ def screenshot():
 
 
 def tap(x, y):
-    payload = {"sequence": [{"x": x, "y": y, "duration": 0.05}]}
-    _request("POST", _with_session("/wda/tapScreenPointSequence"), payload)
+    payload = {"x": x, "y": y}
+    _request("POST", _with_session("/wda/tap/0"), payload)
 
 
 def drag(from_x, from_y, to_x, to_y, duration=0.2):
