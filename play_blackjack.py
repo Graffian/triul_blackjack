@@ -47,6 +47,7 @@ def read_seed(path):
 def find_solver():
     candidates = [
         os.path.join(SCRIPT_DIR, "..", "bin", "triul-blackjack.dist", "triul-blackjack"),
+        os.path.expanduser("~/Downloads/Triul-macos-arm64/bin/triul-blackjack.dist/triul-blackjack"),
         os.path.expanduser("~/Downloads/Triul-macos-arm64/Triul-macos-arm64/bin/triul-blackjack.dist/triul-blackjack"),
     ]
     for p in candidates:
