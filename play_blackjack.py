@@ -44,9 +44,20 @@ def read_seed(path):
     return record["seed"]
 
 
+def find_solver():
+    candidates = [
+        os.path.join(SCRIPT_DIR, "..", "bin", "triul-blackjack.dist", "triul-blackjack"),
+        os.path.expanduser("~/Downloads/Triul-macos-arm64/Triul-macos-arm64/bin/triul-blackjack.dist/triul-blackjack"),
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            return p
+    return candidates[0]
+
+
 def run_solver(seed, beam=200000, solver_path=None):
     if solver_path is None:
-        solver_path = os.path.join(SCRIPT_DIR, "..", "bin", "triul-blackjack.dist", "triul-blackjack")
+        solver_path = find_solver()
     cmd = [
         str(solver_path),
         "--seed", str(seed),
