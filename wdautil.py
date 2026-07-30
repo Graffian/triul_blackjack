@@ -56,14 +56,40 @@ def screenshot():
     return value
 
 
+def _actions(payload):
+    _request("POST", _with_session("/actions"), payload)
+
+
 def tap(x, y):
-    payload = {"x": x, "y": y}
-    _request("POST", _with_session("/wda/tap/0"), payload)
+    _actions({
+        "actions": [{
+            "type": "pointer",
+            "id": "finger1",
+            "parameters": {"pointerType": "touch"},
+            "actions": [
+                {"type": "pointerMove", "duration": 0, "x": x, "y": y},
+                {"type": "pointerDown", "button": 0},
+                {"type": "pause", "duration": 50},
+                {"type": "pointerUp", "button": 0},
+            ],
+        }]
+    })
 
 
 def drag(from_x, from_y, to_x, to_y, duration=0.2):
-    payload = {"fromX": from_x, "fromY": from_y, "toX": to_x, "toY": to_y, "duration": duration}
-    _request("POST", _with_session("/wda/dragfromtoforduration"), payload)
+    _actions({
+        "actions": [{
+            "type": "pointer",
+            "id": "finger1",
+            "parameters": {"pointerType": "touch"},
+            "actions": [
+                {"type": "pointerMove", "duration": 0, "x": from_x, "y": from_y},
+                {"type": "pointerDown", "button": 0},
+                {"type": "pointerMove", "duration": int(duration * 1000), "x": to_x, "y": to_y},
+                {"type": "pointerUp", "button": 0},
+            ],
+        }]
+    })
 
 
 def screen_size():
