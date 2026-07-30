@@ -61,9 +61,9 @@ def tap(x, y):
     _request("POST", _with_session("/wda/tapScreenPointSequence"), payload)
 
 
-def drag(from_x, from_y, to_x, to_y, duration=0.3):
+def drag(from_x, from_y, to_x, to_y, duration=0.2):
     payload = {"fromX": from_x, "fromY": from_y, "toX": to_x, "toY": to_y, "duration": duration}
-    _request("POST", _with_session("/wda/dragfromto"), payload)
+    _request("POST", _with_session("/wda/dragfromtoforduration"), payload)
 
 
 def screen_size():
