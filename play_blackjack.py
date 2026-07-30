@@ -102,7 +102,7 @@ def main():
         layout = load_layout(args.layout)
         card_src = layout["card_source"]
         columns = layout["columns"]
-        stay_pos = layout["stay_button"]
+        stay_btns = layout["stay_buttons"]
 
     for step, act in enumerate(actions):
         action_type = act["action"]
@@ -116,7 +116,7 @@ def main():
             if action_type == "place":
                 print(f"    -> DRAG card_source -> Column {col}")
             elif action_type == "stay":
-                print(f"    -> TAP stay button")
+                print(f"    -> TAP stay button col {col}")
             continue
 
         if action_type == "place":
@@ -125,8 +125,9 @@ def main():
             print(f"    -> Dragging ({card_src[0]},{card_src[1]}) -> ({tx},{ty})")
             wdautil.drag(card_src[0], card_src[1], tx, ty)
         elif action_type == "stay":
-            tx, ty = stay_pos
-            print(f"    -> Tapping stay at ({tx},{ty})")
+            idx = col - 1
+            tx, ty = stay_btns[idx]
+            print(f"    -> Tapping stay col {col} at ({tx},{ty})")
             wdautil.tap(tx, ty)
         else:
             print(f"    -> Unknown action, skipping")
