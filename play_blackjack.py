@@ -4,38 +4,11 @@ import os
 import subprocess
 import sys
 import time
-import urllib.request
-import urllib.error
+import wdautil
 
-WDA_URL = "http://localhost:8100"
 SCRIPT_DIR = os.path.dirname(__file__)
 LAYOUT_FILE = os.path.join(SCRIPT_DIR, "iphone14_layout.json")
 SEED_FILE = os.path.join(SCRIPT_DIR, "last_seed.txt")
-
-
-def wda_request(method, endpoint, data=None, retries=3):
-    url = f"{WDA_URL}{endpoint}"
-    body = json.dumps(data).encode() if data else None
-    for attempt in range(retries):
-        try:
-            req = urllib.request.Request(url, data=body, method=method)
-            req.add_header("Content-Type", "application/json")
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                return json.loads(resp.read())
-        except (urllib.error.HTTPError, urllib.error.URLError) as e:
-            if attempt == retries - 1:
-                raise
-            time.sleep(1)
-
-
-def wda_tap(x, y):
-    payload = {"sequence": [{"x": x, "y": y, "duration": 0.05}]}
-    wda_request("POST", "/wda/tapScreenPointSequence", payload)
-
-
-def wda_drag(from_x, from_y, to_x, to_y, duration=0.3):
-    payload = {"fromX": from_x, "fromY": from_y, "toX": to_x, "toY": to_y, "duration": duration}
-    wda_request("POST", "/wda/drag", payload)
 
 
 def load_layout(path):
@@ -124,6 +97,8 @@ def main():
             print(f"Layout file not found: {args.layout}")
             print("Run calibrate.py first to create it.")
             sys.exit(1)
+        print("Connecting to WDA...")
+        wdautil.start_session()
         layout = load_layout(args.layout)
         card_src = layout["card_source"]
         columns = layout["columns"]
@@ -148,11 +123,11 @@ def main():
             idx = col - 1
             tx, ty = columns[idx]
             print(f"    -> Dragging ({card_src[0]},{card_src[1]}) -> ({tx},{ty})")
-            wda_drag(card_src[0], card_src[1], tx, ty)
+            wdautil.drag(card_src[0], card_src[1], tx, ty)
         elif action_type == "stay":
             tx, ty = stay_pos
             print(f"    -> Tapping stay at ({tx},{ty})")
-            wda_tap(tx, ty)
+            wdautil.tap(tx, ty)
         else:
             print(f"    -> Unknown action, skipping")
             time.sleep(args.delay)
